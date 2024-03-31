@@ -10,8 +10,8 @@ from aiogram.utils.markdown import hbold
 from mongoengine import connect
 
 from common.utils import load_config
-import src.messages as messages
-import src.keyboards as keyboards
+import services.messages as messages
+import services.keyboards as keyboards
 from models.mgo_models import User
 
 
