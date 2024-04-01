@@ -1,4 +1,4 @@
-from mongoengine import Document, StringField, IntField, BooleanField
+from mongoengine import Document, StringField, IntField, BooleanField, ListField, ReferenceField
 
 
 class User(Document):
@@ -7,14 +7,32 @@ class User(Document):
     username = StringField()
     wallet = IntField(min_value=0, default=0)
     invites = IntField(min_value=0, default=0)
-    inviter = IntField(default=0)
+    inviter = IntField()
     is_premium = BooleanField()
-    
+
     meta = {
-        'collection': 'user',
+        'collection': 'users',
         'indexes': [
             'telegram_id',
-            'username',
+            'username'
+        ]
+    }
+
+
+class FileDownload(Document):
+    title = StringField(required=True)
+    description = StringField()
+    file_path = StringField()
+    users = ListField(ReferenceField(User))
+    is_active = BooleanField(default=True)
+    is_downloadable = BooleanField(default=True)
+
+    meta = {
+        'collection': 'class.record',
+        'indexes': [
+            'title',
+            'is_active',
+            'is_downloadable'
         ]
     }
     
