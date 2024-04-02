@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import sys
+import json
 
 from aiogram import Bot, Dispatcher, Router, types
 from aiogram.enums import ParseMode
@@ -12,7 +13,7 @@ from mongoengine import connect
 from common.utils import load_config
 import services.messages as messages
 import services.keyboards as keyboards
-from models.mgo_models import User
+from models.mgo_models import User, UserSteps, FileDownload
 
 
 
@@ -79,8 +80,54 @@ async def command_start_handler(message: Message) -> None:
     # Send the start message to the user with a keyboard
     await message.answer(f"{messages.start} {hbold(message.from_user.username)}!",
                              reply_markup=keyboards.start_keyboard())
+   
+   
+@dp.message()
+async def message_handler(message: types.Message) -> None:
+    """
+        Handle any message
+    """
     
-
+    user = User.objects.get(telegram_id=message.from_user.id)
+    user_step = UserSteps.objects.filter(user=user).first()
+    if message.text == "cancel":
+        user_step.delete()
+    if not user_step:
+        if message.text == "create_file":
+            UserSteps.objects.create(
+                user=user,
+                step="INPUT_FILE_NAME"
+            )
+            await message.answer("please input file name")
+    else:
+        if user_step.step == "INPUT_FILE_NAME":
+            user_step.data == json.dumps({
+                "title": message.text
+            })
+            user_step.step = "INPUT_FILE_DESC"
+            user_step.save()
+            await message.answer("please input file description")
+        elif user_step.step == "INPUT_FILE_DESC":
+            user_step.data = json.dumps(
+                json.loads(user_step.data) | {
+                "desc": message.text
+            })
+            user_step.step = "INPUT_FILE_APPROVE"
+            user_step.save()
+            await message.answer("create class? if you send no, cancel else approve")
+        elif user_step.step == "INPUT_FILE_APPROVE":
+            if message.text == "no":
+                user_step.delete()
+                await message.answer("canceled")
+            else:
+                data = json.loads(user_step.data)
+                file_dl = FileDownload.objects.create(
+                    title=data["title"], 
+                    description=data["desc"]
+                )
+                user_step.delete()
+                await message.answer(f"file created: {file_dl.id}")
+        
 
 @dp.callback_query()
 async def handle_callback_query(callback_query: types.callback_query):
@@ -96,9 +143,14 @@ async def handle_callback_query(callback_query: types.callback_query):
             user = User.objects.get(telegram_id=int(callback_query.from_user.id), reply_markup=keyboards.start_keyboard())
             await callback_query.message.answer(messages.wallet_balance.format(user.wallet), reply_markup=keyboards.start_keyboard())
         case "file_list":
-            await callback_query.message.answer("You clicked the file_list!", reply_markup=keyboards.start_keyboard())
+            await callback_query.message.answer("file list:", reply_markup=keyboards.start_keyboard())
         case "my_files":
             await callback_query.message.answer("You clicked the my_files!", reply_markup=keyboards.start_keyboard())
+        case _:
+            if callback_data.startswith("file_")
+                file = FileDownload.objects.get(id=callback_data.split('_')[1])
+                await callback_query.message.answer(file.title)
+
         
 
 

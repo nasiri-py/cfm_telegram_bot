@@ -22,13 +22,12 @@ class User(Document):
 class FileDownload(Document):
     title = StringField(required=True)
     description = StringField()
-    file_path = StringField()
     users = ListField(ReferenceField(User))
     is_active = BooleanField(default=True)
     is_downloadable = BooleanField(default=True)
 
     meta = {
-        'collection': 'class.record',
+        'collection': 'file.download',
         'indexes': [
             'title',
             'is_active',
@@ -36,3 +35,21 @@ class FileDownload(Document):
         ]
     }
     
+    
+class UserSteps(Document):
+    STEPS = (
+        ("INPUT_FILE_NAME", "input file name"),
+        ("INPUT_FILE_DESC", "input file description"),
+        ("INPUT_FILE_APPROVE", "approve to create file"),
+    )
+    user = ReferenceField(User, required=True, unique=True)
+    step = StringField(choices=STEPS)
+    data = StringField()
+    
+    meta = {
+        'collection': 'user.steps',
+        'indexes': [
+            'user',
+            'step',
+        ]
+    }
